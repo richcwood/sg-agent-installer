@@ -39,6 +39,11 @@ WantedBy=multi-user.target`
 let InstallAsSystemdService = async (execPath, currentUser) => {
     await CreateServiceFile(execPath, currentUser);
 
+    await StartSystemdService(execPath, currentUser);
+};
+
+
+let StartSystemdService = async (execPath, currentUser) => {
     let resInstall = await RunCommand('systemctl', ['start', serviceFileName]);
     if (resInstall.err && resInstall.err.code != 0) {
         throw resInstall.err;
@@ -46,7 +51,7 @@ let InstallAsSystemdService = async (execPath, currentUser) => {
 };
 
 
-let RemoveSystemdService = async () => {
+let StopSystemdService = async () => {
     let resInstall = await RunCommand('systemctl', ['stop', serviceFileName]);
     if (resInstall.code != 0) {
         process.exit(resInstall.code);
@@ -55,4 +60,5 @@ let RemoveSystemdService = async () => {
 
 
 module.exports.InstallAsSystemdService = InstallAsSystemdService;
-module.exports.RemoveSystemdService = RemoveSystemdService;
+module.exports.StartSystemdService = StartSystemdService;
+module.exports.StopSystemdService = StopSystemdService;

@@ -52,7 +52,7 @@ let GunzipFile = async (filePath) => {
 
 let RestAPILogin = async (accessKeyId, accessKeySecret) => {
   if (!accessKeyId || !accessKeySecret) {
-    console.log(`Missing SaasGlue API credentials`);
+    console.log(`Missing SaaSGlue API credentials`);
     process.exit(1);
   }
   let localApiUrl = apiUrl;
@@ -150,7 +150,7 @@ let DownloadAgent_GetUrl = async (agentPlatform, arch, numTries = 0) => {
         if (result.success) {
           resolve(result.data);
         } else {
-          console.log(`Error downloading SaasGlue agent: ${JSON.stringify(result)}`);
+          console.log(`Error downloading SaaSGlue agent: ${JSON.stringify(result)}`);
           process.exit(-1);
         }
         // this.logger.LogDebug(`Agent download url`, { url, agentDownloadUrl });
@@ -332,7 +332,9 @@ let MakeFileExecutable = async (filePath) => {
 
 
 let ChangeDirOwnerRecursive = async (dirPath, owner) => {
+  console.log('chown -> user -> ', owner, ', dirpath -> ', dirPath);
   let res = await RunCommand('sudo', ['chown', '-R', `${owner}:${owner}`, dirPath]);
+  console.log('chown -> res -> ', res);
   if (res.err && res.err.code != 0) {
     throw res.err;
   }

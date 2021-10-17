@@ -45,6 +45,11 @@ let CreatePlistFile = async (execPath) => {
 let InstallAsLaunchdService = async (execPath) => {
     await CreatePlistFile(execPath);
 
+    await StartLaunchdService(execPath);
+};
+
+
+let StartLaunchdService = async (execPath) => {
     let resInstall = await RunCommand('launchctl', ['load', plistFilePath]);
     if (resInstall.err && resInstall.err.code != 0) {
         throw resInstall.err;
@@ -52,7 +57,7 @@ let InstallAsLaunchdService = async (execPath) => {
 };
 
 
-let RemoveLaunchdService = async () => {
+let StopLaunchdService = async () => {
     let resInstall = await RunCommand('launchctl', ['unload', plistFilePath]);
     if (resInstall.code != 0) {
         process.exit(resInstall.code);
@@ -61,4 +66,5 @@ let RemoveLaunchdService = async () => {
 
 
 module.exports.InstallAsLaunchdService = InstallAsLaunchdService;
-module.exports.RemoveLaunchdService = RemoveLaunchdService;
+module.exports.StartLaunchdService = StartLaunchdService;
+module.exports.StopLaunchdService = StopLaunchdService;

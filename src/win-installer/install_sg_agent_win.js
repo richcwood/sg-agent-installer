@@ -37,13 +37,12 @@ let serviceName;
                 tags = resUserConfig.tags;
 
                 if (!accessKeyId) {
-                    console.log('Unable to download SaasGlue agent: Missing access key id');
+                    console.log('Unable to download SaaSGlue agent: Missing access key id');
                     process.exit(1);
                 }
 
-
                 if (!accessKeySecret) {
-                    console.log('Unable to download SaasGlue agent: Missing access key secret');
+                    console.log('Unable to download SaaSGlue agent: Missing access key secret');
                     process.exit(1);
                 }
             }
@@ -52,7 +51,7 @@ let serviceName;
             await CreateConfigFile(configFileName, accessKeyId, accessKeySecret, tags);
             console.log('Configuration file created');
 
-            console.log('Downloading SaasGlue agent');
+            console.log('Downloading SaaSGlue agent');
             await DownloadAgent(UnzipFile, agentPathUncompressed, 'win', arch());
             console.log('Download Complete');
 
@@ -64,7 +63,7 @@ let serviceName;
     
                 let resLogin = await RestAPILogin(accessKeyId, accessKeySecret);
                 serviceName = `SGAgent-${resLogin._teamId}`;
-                console.log(`Installing SaasGlue agent windows service for team "${resLogin._teamId}" - ${serviceName}"`);
+                console.log(`Installing SaaSGlue agent windows service for team "${resLogin._teamId}" - ${serviceName}"`);
                 await InstallAsWindowsService(serviceName, "\"" + agentPathUncompressed + "\"", nssmPathUncompressed);
                 console.log('Install Complete');
             } else {

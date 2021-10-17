@@ -1,7 +1,7 @@
 {
   "name": "sg-agent-downloader",
   "version": "1.0.0",
-  "description": "Contains projects for downloading and installing the SaasGlue agent for mac and linux",
+  "description": "Contains projects for downloading and installing the SaaSGlue agent for mac and linux",
   "engines": {
     "node": "10.18.0"
   },
