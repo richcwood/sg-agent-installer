@@ -1,9 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const path = require("path");
-const {DownloadAgent, GunzipFile, CreateConfigFile, CreateDir, PromptUserForAgentConfig, MakeFileExecutable} = require('../shared/utils')
-const {InstallAsLaunchdService, RemoveLaunchdService} = require('../shared/mac-utils');
-const {ApplicationUsageError} = require('../shared/errors');
+const { DownloadAgent, GunzipFile, CreateConfigFile, CreateDir, PromptUserForAgentConfig, MakeFileExecutable } = require('../shared/utils')
+const { InstallAsLaunchdService, RemoveLaunchdService } = require('../shared/mac-utils');
+const { ApplicationUsageError } = require('../shared/errors');
 const fs = require("fs");
 const fse = require("fs-extra");
 
@@ -19,13 +19,14 @@ rootPath = rootPath.replace('\\\\', '\\');
 const agentPathUncompressed = `${rootPath}sg-agent-launcher`;
 const agentInstallLocation = '/usr/local/lib/saasglue';
 
+
 let Download = async () => {
   try {
     console.log('Downloading SaasGlue agent');
     await DownloadAgent(GunzipFile, agentPathUncompressed, 'macos', '');
     await MakeFileExecutable(agentPathUncompressed);
     let resMkdDir = CreateDir(`${agentInstallLocation}/bin`);
-    await fse.move(agentPathUncompressed, `${agentInstallLocation}/bin/${path.basename(agentPathUncompressed)}`, {overwrite: true});
+    await fse.move(agentPathUncompressed, `${agentInstallLocation}/bin/${path.basename(agentPathUncompressed)}`, { overwrite: true });
     console.log('Download complete');
   } catch (err) {
     console.log('Error downloading SaasGlue agent: ', err);
@@ -35,7 +36,9 @@ let Download = async () => {
 
 (async () => {
   try {
-    const command = process.argv[2]
+    let command = process.argv[2]
+    if (!command)
+      command = 'install';
 
     if (command == 'download') {
       await Download();
@@ -48,7 +51,7 @@ let Download = async () => {
         await CreateConfigFile(cfgFileName, accessKeyId, accessKeySecret, tags);
         console.log('Configuration file created');
       }
-  
+
       console.log('Installing SaasGlue agent');
       await InstallAsLaunchdService(agentInstallLocation);
       console.log('SaasGlue agent installed successfully');

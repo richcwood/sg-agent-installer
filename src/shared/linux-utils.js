@@ -13,7 +13,7 @@ const serviceFileDirectory = `/etc/systemd/system`;
 const serviceFilePath = `${serviceFileDirectory}/${serviceFileName}`;
 
 
-let CreateServiceFile = async (execPath) => {
+let CreateServiceFile = async (execPath, currentUser) => {
     const strServiceFile = `[Unit]
 Description=sg agent launcher 
 After=network-online.target
@@ -25,6 +25,7 @@ ExecStart=${execPath}
 Restart=always
 RestartSec=3
 Environment=NODE_ENV=production
+User=${currentUser}
 
 [Install]
 WantedBy=multi-user.target`
@@ -35,8 +36,8 @@ WantedBy=multi-user.target`
 }
 
 
-let InstallAsSystemdService = async (execPath) => {
-    await CreateServiceFile(execPath);
+let InstallAsSystemdService = async (execPath, currentUser) => {
+    await CreateServiceFile(execPath, currentUser);
 
     let resInstall = await RunCommand('systemctl', ['start', serviceFileName]);
     if (resInstall.err && resInstall.err.code != 0) {

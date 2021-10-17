@@ -86,7 +86,7 @@ let RestAPICall = async (url, method, headers = {}, data = {}) => {
         localApiUrl += `:${apiPort}`;
       localApiUrl += `/api/${apiVersion}/${url}`;
 
-      // console.log('RestAPICall -> url ', localApiUrl, ', method -> ', method, ', headers -> ', JSON.stringify(combinedHeaders, null, 4), ', data -> ', JSON.stringify(data, null, 4), ', token -> ', token);
+      // console.log('RestAPICall -> url ', localApiUrl, ', method -> ', method, ', headers -> ', JSON.stringify(headers, null, 4), ', data -> ', JSON.stringify(data, null, 4));
       // this.logger.LogDebug(`RestAPICall`, { url, method, combinedHeaders, data, token: this.params.token });
 
       const response = await axios_1.default({
@@ -116,18 +116,8 @@ let RestAPICall = async (url, method, headers = {}, data = {}) => {
 };
 
 
-let DownloadNSSM = async (fnUnzipFile, nssmPathUncompressed, accessKeyId, accessKeySecret, agentPlatform) => {
-  let nssmS3URL;
-
-  let url = `agentDownload/nssm/${agentPlatform}`;
-  let result = await RestAPICall(url, 'GET', accessKeyId, accessKeySecret, {}, null);
-  if (result.success) {
-    nssmS3URL = result.data;
-  } else {
-    console.log(`Error downloading nssm: ${JSON.stringify(result)}`);
-    process.exit(-1);
-  }
-
+let DownloadNSSM = async (fnUnzipFile, nssmPathUncompressed, agentPlatform) => {
+  const nssmS3URL = `https://www.saasglue.com/nssm/${agentPlatform}/nssm.zip`;
   const nssmPathCompressed = nssmPathUncompressed + ".zip";
   const writer = fs.createWriteStream(nssmPathCompressed);
   const response = await axios_1.default({
@@ -213,8 +203,6 @@ let DownloadAgent = async (fnUnzipFile, agentPathUncompressed, agentPlatform, ar
     });
     writer.on('error', reject);
   });
-
-  return { _teamId };
 };
 
 
@@ -285,7 +273,7 @@ let CreateConfigFile = async (cfgFileName, accessKeyId, accessKeySecret, tags) =
 };
 
 
-let GetAgentConfig = async () => {
+let GetAgentConfig = async (cfgFileName) => {
   let cfg = {};
   cfg['tags'] = {};
 
@@ -297,10 +285,10 @@ let GetAgentConfig = async () => {
 };
 
 
-let PromptUserForAgentConfig = async () => {
+let PromptUserForAgentConfig = async (cfgFileName) => {
   return new Promise(async (resolve, reject) => {
 
-    let cfg = await GetAgentConfig();
+    let cfg = await GetAgentConfig(cfgFileName);
 
     const rl = readline.createInterface({
       input: process.stdin,
@@ -331,15 +319,23 @@ let PromptUserForAgentConfig = async () => {
 
 let MakeFileExecutable = async (filePath) => {
   await new Promise(async (resolve, reject) => {
-      fs.chmod(filePath, 0o0755, ((err) => {
-          if (err) {
-              reject(err);
-              return;
-          }
-          resolve();
-          return;
-      }));
-  });
+    fs.chmod(filePath, 0o0755, ((err) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve();
+      return;
+    }));
+  })
+};
+
+
+let ChangeDirOwnerRecursive = async (dirPath, owner) => {
+  let res = await RunCommand('sudo', ['chown', '-R', `${owner}:${owner}`, dirPath]);
+  if (res.err && res.err.code != 0) {
+    throw res.err;
+  }
 };
 
 
@@ -356,3 +352,4 @@ module.exports.GunzipFile = GunzipFile;
 module.exports.CreateDir = CreateDir;
 module.exports.DownloadNSSM = DownloadNSSM;
 module.exports.MakeFileExecutable = MakeFileExecutable;
+module.exports.ChangeDirOwnerRecursive = ChangeDirOwnerRecursive;

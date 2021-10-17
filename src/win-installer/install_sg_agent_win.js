@@ -2,95 +2,117 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const path = require("path");
 const arch = require('arch');
-const { DownloadAgent, DownloadNSSM, CreateConfigFile, PromptUserForAgentConfig, RestAPILogin } = require('../shared/utils')
-const { UnzipFile, InstallAsWindowsService } = require('../shared/win-utils');
+const { DownloadAgent, DownloadNSSM, CreateConfigFile, PromptUserForAgentConfig, RestAPILogin, RunCommand } = require('../shared/utils')
+const { UnzipFile, InstallAsWindowsService, RemoveWindowsService, GetServiceName, StartWindowsService, StopWindowsService } = require('../shared/win-utils');
+const {ApplicationUsageError} = require('../shared/errors');
 const fs = require("fs");
 
 
+// let rootPath = "C:\\Program Files\\SaaSGlue\\";
 let rootPath = process.cwd() + path.sep;
 rootPath = rootPath.replace('//', '/');
 rootPath = rootPath.replace('\\\\', '\\');
 
-let agentPathUncompressed = `${rootPath}sg-agent-launcher.exe`;
-let nssmPathUncompressed = `${rootPath}nssm.exe`;
+const agentPathUncompressed = `${rootPath}sg-agent-launcher.exe`;
+const nssmPathUncompressed = `${rootPath}nssm.exe`;
+const configFileName = `${rootPath}sg.cfg`;
+let serviceName;
+
 
 (async () => {
     try {
-        const command = process.argv[2]
+        let command = process.argv[2]
+        if (!command)
+            command = 'install';
 
-        if (command == 'download') {
+        if (command == 'install' || command == 'download') {
             let accessKeyId = process.argv[3];
             let accessKeySecret = process.argv[4];
-
-            console.log('Downloading SaasGlue agent');
-            let res = await DownloadAgent(UnzipFile, agentPathUncompressed, accessKeyId, accessKeySecret, 'win', arch());
-            console.log('Download Complete');
-        } else if (command == 'install') {
-            let accessKeyId = process.argv[3];
-            let accessKeySecret = process.argv[4];
+            let tags = process.argv[5];
 
             if (!accessKeyId || !accessKeySecret) {
-                let resUserConfig = await PromptUserForAgentConfig();
+                let resUserConfig = await PromptUserForAgentConfig(configFileName);
                 accessKeyId = resUserConfig.SG_ACCESS_KEY_ID;
                 accessKeySecret = resUserConfig.SG_ACCESS_KEY_SECRET;
                 tags = resUserConfig.tags;
 
                 if (!accessKeyId) {
-                    console.log('Unable to install SaasGlue agent: Missing access key id');
+                    console.log('Unable to download SaasGlue agent: Missing access key id');
                     process.exit(1);
                 }
 
 
                 if (!accessKeySecret) {
-                    console.log('Unable to install SaasGlue agent: Missing access key secret');
+                    console.log('Unable to download SaasGlue agent: Missing access key secret');
                     process.exit(1);
                 }
             }
 
-            console.log('Creating sg.cfg');
-            await CreateConfigFile(accessKeyId, accessKeySecret, tags);
+            console.log('Creating ', configFileName);
+            await CreateConfigFile(configFileName, accessKeyId, accessKeySecret, tags);
             console.log('Configuration file created');
 
-            console.log('Downloading and installing SaasGlue agent');
-            let res = await DownloadAgent(UnzipFile, agentPathUncompressed, accessKeyId, accessKeySecret, 'win', arch());
-            let serviceName = `SGAgent-${res._teamId}`;
+            console.log('Downloading SaasGlue agent');
+            await DownloadAgent(UnzipFile, agentPathUncompressed, 'win', arch());
             console.log('Download Complete');
 
-            if (!fs.existsSync(nssmPathUncompressed)) {
-                console.log(`Downloading nssm`);
-                await DownloadNSSM(UnzipFile, nssmPathUncompressed, accessKeyId, accessKeySecret, arch());
+            if (command == 'install') {
+                if (!fs.existsSync(nssmPathUncompressed)) {
+                    console.log(`Downloading nssm`);
+                    await DownloadNSSM(UnzipFile, nssmPathUncompressed, arch());
+                }
+    
+                let resLogin = await RestAPILogin(accessKeyId, accessKeySecret);
+                serviceName = `SGAgent-${resLogin._teamId}`;
+                console.log(`Installing SaasGlue agent windows service for team "${resLogin._teamId}" - ${serviceName}"`);
+                await InstallAsWindowsService(serviceName, "\"" + agentPathUncompressed + "\"", nssmPathUncompressed);
+                console.log('Install Complete');
+            } else {
+                console.log('To start the SaaSGlue Agent run sg-agent-launcher.exe');
             }
-
-            console.log(`Installing SaasGlue agent windows service for team "${res._teamId}" - ${serviceName}"`);
-            await InstallAsWindowsService(serviceName, agentPathUncompressed);
-            console.log('Install Complete');
         } else if (command == 'uninstall') {
-            let serviceName = undefined;
             if (process.argv.length > 3)
                 serviceName = process.argv[3];
 
             if (!fs.existsSync(nssmPathUncompressed)) {
-                let cfg = await GetAgentConfig();
-                let accessKeyId = cfg.SG_ACCESS_KEY_ID;
-                let accessKeySecret = cfg.SG_ACCESS_KEY_SECRET;
-
                 console.log(`Downloading nssm`);
-                await DownloadNSSM(UnzipFile, nssmPathUncompressed, accessKeyId, accessKeySecret, arch());
+                await DownloadNSSM(UnzipFile, nssmPathUncompressed, arch());
             }
 
-            if (serviceName) {
-                await RemoveWindowsService(serviceName);
-            } else {
-                let cfgAsString = fs.readFileSync('sg.cfg');
-                let cfg = JSON.parse(cfgAsString);
-                let resLogin = await RestAPILogin(cfg['SG_ACCESS_KEY_ID'], cfg['SG_ACCESS_KEY_SECRET']);
-                let serviceName = `SGAgent-${resLogin._teamId}`;
-                await RemoveWindowsService(serviceName);
+            let serviceName = await GetServiceName(configFileName);
+            await RemoveWindowsService(serviceName, nssmPathUncompressed);
+        } else if (command == 'start') {
+            if (!fs.existsSync(nssmPathUncompressed)) {
+                console.log(`Downloading nssm`);
+                await DownloadNSSM(UnzipFile, nssmPathUncompressed, arch());
             }
+
+            let serviceName = await GetServiceName(configFileName);
+            await StartWindowsService(serviceName, nssmPathUncompressed);
+        } else if (command == 'stop') {
+            if (!fs.existsSync(nssmPathUncompressed)) {
+                console.log(`Downloading nssm`);
+                await DownloadNSSM(UnzipFile, nssmPathUncompressed, arch());
+            }
+
+            let serviceName = await GetServiceName(configFileName);
+            await StopWindowsService(serviceName, nssmPathUncompressed);
         }
         process.exit(0);
     } catch (err) {
-        console.log('Error installing SaasGlue agent: ', err);
+        if (err instanceof ApplicationUsageError) {
+            console.log(`
+      usage: /sg-agent-installer-win-x64.exe <command> [parameters]
+      
+        sg_agent download  
+        sg_agent install [sg agent access key id] [sg agent access secret key]
+        sg_agent start
+        sg_agent stop
+        sg_agent uninstall
+        `)
+        } else {
+            console.log(err);
+        }
         process.exit(1);
     }
 })();

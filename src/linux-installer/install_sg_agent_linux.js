@@ -1,14 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const path = require("path");
-const {DownloadAgent, GunzipFile, CreateConfigFile, CreateDir, PromptUserForAgentConfig, MakeFileExecutable} = require('../shared/utils')
+const {DownloadAgent, GunzipFile, CreateConfigFile, CreateDir, PromptUserForAgentConfig, MakeFileExecutable, ChangeDirOwnerRecursive} = require('../shared/utils')
 const {InstallAsSystemdService, RemoveSystemdService} = require('../shared/linux-utils');
 const {ApplicationUsageError} = require('../shared/errors');
 const fs = require("fs");
 const fse = require("fs-extra");
 
 
-const command = process.argv[2]
 const accessKeyId = process.argv[3];
 const accessKeySecret = process.argv[4];
 const tags = process.argv[5];
@@ -21,6 +20,8 @@ const agentName = 'sg-agent-launcher';
 const agentPathUncompressed = `${rootPath}${agentName}`;
 const agentInstallLocation = '/usr/bin/saasglue/';
 const agentInstallPath = `${agentInstallLocation}/${agentName}`
+const currentUser = process.env.USER;
+
 
 let Download = async () => {
   try {
@@ -29,6 +30,7 @@ let Download = async () => {
     await MakeFileExecutable(agentPathUncompressed);
     let resMkdDir = CreateDir(agentInstallLocation);
     await fse.move(agentPathUncompressed, `${agentInstallLocation}/${agentName}`, {overwrite: true});
+    await ChangeDirOwnerRecursive(agentInstallLocation, currentUser)
     console.log('Download complete');
   } catch (err) {
     console.log('Error downloading SaasGlue agent: ', err);
@@ -38,6 +40,10 @@ let Download = async () => {
 
 (async () => {
   try {
+    let command = process.argv[2]
+    if (!command)
+      command = 'install';
+  
     if (command == 'download') {
       await Download();
     } else if (command == 'install') {
@@ -51,7 +57,7 @@ let Download = async () => {
       }
   
       console.log('Installing SaasGlue agent');
-      await InstallAsSystemdService(agentInstallPath);
+      await InstallAsSystemdService(agentInstallPath, currentUser);
       console.log('SaasGlue agent installed successfully');
     } else if (command == 'uninstall') {
       console.log('Uninstalling SaasGlue agent');
