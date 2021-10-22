@@ -332,11 +332,41 @@ let MakeFileExecutable = async (filePath) => {
 
 
 let ChangeDirOwnerRecursive = async (dirPath, owner) => {
-  console.log('chown -> user -> ', owner, ', dirpath -> ', dirPath);
   let res = await RunCommand('sudo', ['chown', '-R', `${owner}:${owner}`, dirPath]);
-  console.log('chown -> res -> ', res);
   if (res.err && res.err.code != 0) {
     throw res.err;
+  }
+};
+
+
+let DeleteFile = async (filePath) => {
+  return new Promise((resolve, reject) => {
+    fs.stat(filePath, function (err, stats) {
+      if (err) {
+        resolve();
+      }
+
+      fs.unlink(filePath, function (err) {
+        resolve();
+      });
+    });
+  });
+};
+
+
+let DeleteFolderRecursive = (directoryPath) => {
+  if (fs.existsSync(directoryPath)) {
+    fs.readdirSync(directoryPath).forEach((file, index) => {
+      const curPath = path.join(directoryPath, file);
+      if (fs.lstatSync(curPath).isDirectory()) {
+        // recurse
+        DeleteFolderRecursive(curPath);
+      } else {
+        // delete file
+        fs.unlinkSync(curPath);
+      }
+    });
+    fs.rmdirSync(directoryPath);
   }
 };
 
@@ -355,3 +385,5 @@ module.exports.CreateDir = CreateDir;
 module.exports.DownloadNSSM = DownloadNSSM;
 module.exports.MakeFileExecutable = MakeFileExecutable;
 module.exports.ChangeDirOwnerRecursive = ChangeDirOwnerRecursive;
+module.exports.DeleteFile = DeleteFile;
+module.exports.DeleteFolderRecursive = DeleteFolderRecursive;

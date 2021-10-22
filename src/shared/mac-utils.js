@@ -49,18 +49,28 @@ let InstallAsLaunchdService = async (execPath) => {
 };
 
 
+let UninstallLaunchdService = async () => {
+    try {
+        let res = await RunCommand('launchctl', ['remove', 'com.saasglue.agent']);
+    } catch (Exception) {}
+    // if (res.err && res.err.code != 0) {
+    //     throw res.err;
+    // }
+};
+
+
 let StartLaunchdService = async (execPath) => {
-    let resInstall = await RunCommand('launchctl', ['load', plistFilePath]);
-    if (resInstall.err && resInstall.err.code != 0) {
-        throw resInstall.err;
+    let res = await RunCommand('launchctl', ['load', plistFilePath]);
+    if (res.err && res.err.code != 0) {
+        throw res.err;
     }
 };
 
 
 let StopLaunchdService = async () => {
-    let resInstall = await RunCommand('launchctl', ['unload', plistFilePath]);
-    if (resInstall.code != 0) {
-        process.exit(resInstall.code);
+    let res = await RunCommand('launchctl', ['unload', plistFilePath]);
+    if (res.err && res.err.code != 0) {
+        process.exit(res.err);
     }
 };
 
@@ -68,3 +78,4 @@ let StopLaunchdService = async () => {
 module.exports.InstallAsLaunchdService = InstallAsLaunchdService;
 module.exports.StartLaunchdService = StartLaunchdService;
 module.exports.StopLaunchdService = StopLaunchdService;
+module.exports.UninstallLaunchdService = UninstallLaunchdService;

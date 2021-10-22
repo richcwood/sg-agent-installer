@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const path = require("path");
-const { DownloadAgent, GunzipFile, CreateConfigFile, CreateDir, PromptUserForAgentConfig, MakeFileExecutable, ChangeDirOwnerRecursive } = require('../shared/utils')
-const { InstallAsSystemdService, StartSystemdService, StopSystemdService } = require('../shared/linux-utils');
+const { DownloadAgent, GunzipFile, CreateConfigFile, CreateDir, PromptUserForAgentConfig, MakeFileExecutable, ChangeDirOwnerRecursive, DeleteFile, DeleteFolderRecursive } = require('../shared/utils')
+const { InstallAsSystemdService, StartSystemdService, StopSystemdService, UninstallSystemdService } = require('../shared/linux-utils');
 const { ApplicationUsageError } = require('../shared/errors');
 const fs = require("fs");
 const fse = require("fs-extra");
@@ -16,7 +16,7 @@ const agentName = 'sg-agent-launcher';
 const agentPathUncompressed = `${rootPath}${agentName}`;
 const agentInstallLocation = '/usr/bin/saasglue/';
 const agentInstallPath = `${agentInstallLocation}${agentName}`
-const configFileName = '/etc/saasglue/sg.cfg';
+let configFilePath = '/etc/saasglue/sg.cfg';
 const currentUser = process.env.SUDO_USER;
 
 
@@ -41,13 +41,16 @@ let Download = async () => {
     if (!command)
       command = 'install';
 
+    if (command == 'download')
+      configFilePath = './sg.cfg';
+
     if (command == 'install' || command == 'download') {
       let accessKeyId = process.argv[3];
       let accessKeySecret = process.argv[4];
       let tags = process.argv[5];
 
       if (!accessKeyId || !accessKeySecret) {
-        let resUserConfig = await PromptUserForAgentConfig(configFileName);
+        let resUserConfig = await PromptUserForAgentConfig(configFilePath);
         accessKeyId = resUserConfig.SG_ACCESS_KEY_ID;
         accessKeySecret = resUserConfig.SG_ACCESS_KEY_SECRET;
         tags = resUserConfig.tags;
@@ -63,8 +66,8 @@ let Download = async () => {
         }
       }
 
-      console.log('Creating ', configFileName);
-      await CreateConfigFile(configFileName, accessKeyId, accessKeySecret, tags);
+      console.log('Creating ', configFilePath);
+      await CreateConfigFile(configFilePath, accessKeyId, accessKeySecret, tags);
       console.log('Configuration file created');
 
       await Download();
@@ -76,6 +79,12 @@ let Download = async () => {
       } else {
         console.log('To start the SaaSGlue Agent run sg-agent-launcher');
       }
+    } else if (command == 'uninstall') {
+      console.log('Uninstalling SaaSGlue agent');
+      await UninstallSystemdService();
+      DeleteFolderRecursive(agentInstallLocation);
+      await DeleteFile(configFilePath)
+      console.log('SaaSGlue agent uninstalled successfully');
     } else if (command == 'start') {
       console.log('Starting SaaSGlue agent');
       await StartSystemdService();
@@ -120,6 +129,7 @@ sg_agent download
 sg_agent install [sg agent access key id] [sg agent access secret key]
 sg_agent start
 sg_agent stop
+sg_agent uninstall
 `)
     } else {
       console.log(err);
