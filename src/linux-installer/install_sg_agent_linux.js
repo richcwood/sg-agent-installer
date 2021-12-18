@@ -6,6 +6,8 @@ const { InstallAsSystemdService, StartSystemdService, StopSystemdService, Uninst
 const { ApplicationUsageError } = require('../shared/errors');
 const fs = require("fs");
 const fse = require("fs-extra");
+const { program, Option } = require('commander');
+program.version('0.0.1');
 
 
 let rootPath = process.cwd() + path.sep;
@@ -37,17 +39,23 @@ let Download = async () => {
 
 (async () => {
   try {
-    let command = process.argv[2]
-    if (!command)
-      command = 'install';
+    program
+    .addOption(new Option('-c, --command <command>', 'command to run').default('install', 'install the agent as a service').choices(['install', 'download', 'uninstall', 'start', 'stop']))
+    .option('-i, --id <id>', 'agent access key id')
+    .option('-s, --secret <secret>', 'agent access key secret')
+    .option('-t, --tags <tags>', 'agent tags')
+    .parse();
+
+    const options = program.opts();
+    let command = options.command;
 
     if (command == 'download')
       configFilePath = './sg.cfg';
 
     if (command == 'install' || command == 'download') {
-      let accessKeyId = process.argv[3];
-      let accessKeySecret = process.argv[4];
-      let tags = process.argv[5];
+      let accessKeyId = options.id;
+      let accessKeySecret = options.secret;
+      let tags = options.tags;
 
       if (!accessKeyId || !accessKeySecret) {
         let resUserConfig = await PromptUserForAgentConfig(configFilePath);
@@ -96,41 +104,10 @@ let Download = async () => {
     } else {
       throw new ApplicationUsageError();
     }
-
-    // console.log('Downloading SaaSGlue agent');
-    // await DownloadAgent(GunzipFile, agentPathUncompressed, 'linux', '');
-    // await fse.move(plistFileName, `${os.homedir()}/Library/LaunchAgents/${plistFileName}`, {overwrite: true});
-    // console.log('Download complete');
-
-    // if (!accessKeyId || !accessKeySecret) {
-    //   let resUserConfig = await PromptUserForAgentConfig();
-    //   accessKeyId = resUserConfig.SG_ACCESS_KEY_ID;
-    //   accessKeySecret = resUserConfig.SG_ACCESS_KEY_SECRET;
-    //   tags = resUserConfig.tags;
-
-    //   if (!accessKeyId) {
-    //     console.log('Unable to install SaaSGlue agent: Missing access key id');
-    //     process.exit(1);
-    //   }
-
-
-    //   if (!accessKeySecret) {
-    //     console.log('Unable to install SaaSGlue agent: Missing access key secret');
-    //     process.exit(1);
-    //   }
-    // }
     process.exit(0);
   } catch (err) {
     if (err instanceof ApplicationUsageError) {
-      console.log(`
-usage: ./sg-agent-installer-linux <command> [parameters]
-
-sg_agent download  
-sg_agent install [sg agent access key id] [sg agent access secret key]
-sg_agent start
-sg_agent stop
-sg_agent uninstall
-`)
+      program.outputHelp();
     } else {
       console.log(err);
     }
