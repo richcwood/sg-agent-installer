@@ -11,7 +11,7 @@ const plistFileName = 'com.saasglue.agent.plist'
 const plistFilePath = `${os.homedir()}/Library/LaunchAgents/${plistFileName}`;
 
 
-let CreatePlistFile = async (execPath) => {
+let CreatePlistFile = async (execPath, envPath) => {
     const strPlistFile = `<?xml version="1.0" encoding="UTF-8"?>
     <!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
     <plist version="1.0">
@@ -27,7 +27,13 @@ let CreatePlistFile = async (execPath) => {
     
         <key>WorkingDirectory</key>
         <string>${execPath}/bin/</string>
-    
+
+        <key>EnvironmentVariables</key>
+        <dict>
+          <key>PATH</key>
+          <string>${envPath}</string>
+        </dict>
+
         <key>Program</key>
         <string>${execPath}/bin/sg-agent-launcher</string>
     
@@ -42,8 +48,8 @@ let CreatePlistFile = async (execPath) => {
 }
 
 
-let InstallAsLaunchdService = async (execPath) => {
-    await CreatePlistFile(execPath);
+let InstallAsLaunchdService = async (execPath, envPath) => {
+    await CreatePlistFile(execPath, envPath);
 
     await StartLaunchdService(execPath);
 };
