@@ -20,14 +20,16 @@ let configFilePath = '/etc/saasglue/sg.cfg';
 const currentUser = process.env.SUDO_USER;
 
 
-let Download = async () => {
+let Download = async (moveToAgentInstallLocation) => {
   try {
     console.log('Downloading SaaSGlue agent');
     await DownloadAgent(GunzipFile, agentPathUncompressed, 'linux', '');
     await MakeFileExecutable(agentPathUncompressed);
-    let resMkdDir = CreateDir(agentInstallLocation);
-    await fse.move(agentPathUncompressed, `${agentInstallLocation}/${agentName}`, { overwrite: true });
-    await ChangeDirOwnerRecursive(agentInstallLocation, currentUser)
+    if (moveToAgentInstallLocation) {
+      let resMkdDir = CreateDir(agentInstallLocation);
+      await fse.move(agentPathUncompressed, `${agentInstallLocation}/${agentName}`, { overwrite: true });
+      await ChangeDirOwnerRecursive(agentInstallLocation, currentUser)
+    }
     console.log('Download complete');
   } catch (err) {
     console.log('Error downloading SaaSGlue agent: ', err);
@@ -70,7 +72,7 @@ let Download = async () => {
       await CreateConfigFile(configFilePath, accessKeyId, accessKeySecret, tags);
       console.log('Configuration file created');
 
-      await Download();
+      await Download(command == 'install');
 
       if (command == 'install') {
         console.log('Installing SaaSGlue agent');
