@@ -117,7 +117,7 @@ let RestAPICall = async (url, method, headers = {}, data = {}) => {
 
 
 let DownloadNSSM = async (fnUnzipFile, nssmPathUncompressed, agentPlatform) => {
-  const nssmS3URL = `https://www.saasglue.com/nssm/${agentPlatform}/nssm.zip`;
+  const nssmS3URL = `https://sg-agent-installer.s3.us-east-2.amazonaws.com/nssm/${agentPlatform}/nssm.zip`
   const nssmPathCompressed = nssmPathUncompressed + ".zip";
   const writer = fs.createWriteStream(nssmPathCompressed);
   const response = await axios_1.default({
