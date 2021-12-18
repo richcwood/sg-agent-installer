@@ -6,6 +6,8 @@ const { DownloadAgent, DownloadNSSM, CreateConfigFile, PromptUserForAgentConfig,
 const { UnzipFile, InstallAsWindowsService, RemoveWindowsService, GetServiceName, StartWindowsService, StopWindowsService } = require('../shared/win-utils');
 const {ApplicationUsageError} = require('../shared/errors');
 const fs = require("fs");
+const { program, Option } = require('commander');
+program.version('0.0.1');
 
 
 // let rootPath = "C:\\Program Files\\SaaSGlue\\";
@@ -21,14 +23,20 @@ let serviceName;
 
 (async () => {
     try {
-        let command = process.argv[2]
-        if (!command)
-            command = 'install';
+        program
+        .addOption(new Option('-c, --command <command>', 'command to run').default('install', 'install the agent as a service').choices(['install', 'download', 'uninstall', 'start', 'stop']))
+        .option('-i, --id <id>', 'agent access key id')
+        .option('-s, --secret <secret>', 'agent access key secret')
+        .option('-t, --tags <tags>', 'agent tags')
+        .parse();
+    
+        const options = program.opts();
+        let command = options.command;
 
         if (command == 'install' || command == 'download') {
-            let accessKeyId = process.argv[3];
-            let accessKeySecret = process.argv[4];
-            let tags = process.argv[5];
+            let accessKeyId = options.id;
+            let accessKeySecret = options.secret;
+            let tags = options.tags;
 
             if (!accessKeyId || !accessKeySecret) {
                 let resUserConfig = await PromptUserForAgentConfig(configFileName);
@@ -70,9 +78,6 @@ let serviceName;
                 console.log('To start the SaaSGlue Agent run sg-agent-launcher.exe');
             }
         } else if (command == 'uninstall') {
-            if (process.argv.length > 3)
-                serviceName = process.argv[3];
-
             if (!fs.existsSync(nssmPathUncompressed)) {
                 console.log(`Downloading nssm`);
                 await DownloadNSSM(UnzipFile, nssmPathUncompressed, arch());
@@ -100,18 +105,10 @@ let serviceName;
         process.exit(0);
     } catch (err) {
         if (err instanceof ApplicationUsageError) {
-            console.log(`
-      usage: /sg-agent-installer-win-x64.exe <command> [parameters]
-      
-        sg_agent download  
-        sg_agent install [sg agent access key id] [sg agent access secret key]
-        sg_agent start
-        sg_agent stop
-        sg_agent uninstall
-        `)
-        } else {
+            program.outputHelp();
+          } else {
             console.log(err);
-        }
-        process.exit(1);
+          }
+          process.exit(1);
     }
 })();
