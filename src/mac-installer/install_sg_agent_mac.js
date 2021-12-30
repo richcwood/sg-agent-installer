@@ -16,8 +16,8 @@ rootPath = rootPath.replace('//', '/');
 rootPath = rootPath.replace('\\\\', '\\');
 
 const agentPathUncompressed = `${rootPath}sg-agent-launcher`;
-const agentInstallLocation = '/usr/local/lib/saasglue';
-let configFilePath = `${os.homedir()}/.saasglue/sg.cfg`;
+const agentInstallLocation = `${os.homedir()}/.saasglue`;
+let configFilePath = `${agentInstallLocation}/sg.cfg`;
 
 
 let Download = async (moveToAgentInstallLocation) => {
@@ -26,8 +26,8 @@ let Download = async (moveToAgentInstallLocation) => {
     await DownloadAgent(GunzipFile, agentPathUncompressed, 'macos', '');
     await MakeFileExecutable(agentPathUncompressed);
     if (moveToAgentInstallLocation) {
-      let resMkdDir = CreateDir(`${agentInstallLocation}/bin`);
-      await fse.move(agentPathUncompressed, `${agentInstallLocation}/bin/${path.basename(agentPathUncompressed)}`, { overwrite: true });
+      CreateDir(`${agentInstallLocation}`);
+      await fse.move(agentPathUncompressed, `${agentInstallLocation}/${path.basename(agentPathUncompressed)}`, { overwrite: true });
     }
     console.log('Download complete');
   } catch (err) {
@@ -38,6 +38,17 @@ let Download = async (moveToAgentInstallLocation) => {
 
 (async () => {
   try {
+    const userName = os.userInfo().username;
+    if (userName != 'root') {
+      let args = [];
+      args[0] = `./${path.basename(process.argv[0])}`;
+      args[1] = path.basename(process.argv[1]);
+      for (let i = 2; i < process.argv.length; ++i)
+        args[i] = process.argv[i];
+      console.log(`Installer must be run as sudo, e.g. "sudo ${args.join(' ')}"`);
+      process.exit(1);  
+    }
+
     program
     .addOption(new Option('-c, --command <command>', 'command to run').default('install', 'install the agent as a service').choices(['install', 'download', 'uninstall', 'start', 'stop']))
     .option('-i, --id <id>', 'agent access key id')

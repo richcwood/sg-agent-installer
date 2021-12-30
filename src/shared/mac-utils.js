@@ -4,14 +4,16 @@ const fs = require('fs');
 const fse = require('fs-extra');
 const os = require('os');
 const shell = require('shelljs');
-const { RunCommand } = require('./utils');
+const { RunCommand, CreateDir, ChangeDirOwnerRecursive } = require('./utils');
 
 
 const plistFileName = 'com.saasglue.agent.plist'
-const plistFilePath = `${os.homedir()}/Library/LaunchAgents/${plistFileName}`;
+const plistFilePath = `/Library/LaunchDaemons/${plistFileName}`;
 
 
-let CreatePlistFile = async (execPath, envPath) => {
+let CreatePlistFile = async (execPath, envPath, userName) => {
+    const logsPath = `${execPath}/launchd`;
+    CreateDir(logsPath);
     const strPlistFile = `<?xml version="1.0" encoding="UTF-8"?>
     <!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
     <plist version="1.0">
@@ -20,13 +22,13 @@ let CreatePlistFile = async (execPath, envPath) => {
         <string>com.saasglue.agent</string>
     
         <key>StandardErrorPath</key>
-        <string>${execPath}/log/stderr.log</string>
+        <string>${logsPath}/stderr.log</string>
     
         <key>StandardOutPath</key>
-        <string>${execPath}/log/stdout.log</string>
+        <string>${logsPath}/stdout.log</string>
     
         <key>WorkingDirectory</key>
-        <string>${execPath}/bin/</string>
+        <string>${execPath}/</string>
 
         <key>EnvironmentVariables</key>
         <dict>
@@ -35,10 +37,16 @@ let CreatePlistFile = async (execPath, envPath) => {
         </dict>
 
         <key>Program</key>
-        <string>${execPath}/bin/sg-agent-launcher</string>
+        <string>${execPath}/sg-agent-launcher</string>
+
+        <key>UserName</key>
+        <string>${userName}</string>
     
         <key>KeepAlive</key>
         <true/>
+
+        <key>RunAtLoad</key>
+        <true/>        
     </dict>
     </plist>`
 
@@ -49,7 +57,11 @@ let CreatePlistFile = async (execPath, envPath) => {
 
 
 let InstallAsLaunchdService = async (execPath, envPath) => {
-    await CreatePlistFile(execPath, envPath);
+    const currentUser = process.env.SUDO_USER;
+
+    await CreatePlistFile(execPath, envPath, currentUser);
+
+    await ChangeDirOwnerRecursive(execPath, currentUser)
 
     await StartLaunchdService(execPath);
 };

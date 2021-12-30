@@ -30,7 +30,7 @@ let Download = async (moveToAgentInstallLocation) => {
     if (moveToAgentInstallLocation) {
       let resMkdDir = CreateDir(agentInstallLocation);
       await fse.move(agentPathUncompressed, `${agentInstallLocation}/${agentName}`, { overwrite: true });
-      await ChangeDirOwnerRecursive(agentInstallLocation, currentUser)
+      await ChangeDirOwnerRecursive(agentInstallLocation, currentUser, currentUser)
     }
     console.log('Download complete');
   } catch (err) {

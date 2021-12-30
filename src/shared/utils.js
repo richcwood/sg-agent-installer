@@ -331,8 +331,12 @@ let MakeFileExecutable = async (filePath) => {
 };
 
 
-let ChangeDirOwnerRecursive = async (dirPath, owner) => {
-  let res = await RunCommand('sudo', ['chown', '-R', `${owner}:${owner}`, dirPath]);
+let ChangeDirOwnerRecursive = async (dirPath, owner, group=null) => {
+  let res;
+  if (group)
+    res = await RunCommand('sudo', ['chown', '-R', `${owner}:${group}`, dirPath]);
+  else
+    res = await RunCommand('sudo', ['chown', '-R', `${owner}`, dirPath]);
   if (res.err && res.err.code != 0) {
     throw res.err;
   }
