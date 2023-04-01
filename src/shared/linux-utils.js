@@ -40,6 +40,7 @@ let InstallAsSystemdService = async (execPath, currentUser) => {
     await CreateServiceFile(execPath, currentUser);
 
     await StartSystemdService();
+    await EnableSystemdService();
 };
 
 
@@ -54,6 +55,14 @@ let UninstallSystemdService = async () => {
 
 let StartSystemdService = async () => {
     let res = await RunCommand('systemctl', ['start', serviceFileName]);
+    if (res.err && res.err.code != 0) {
+        throw res.err;
+    }
+};
+
+
+let EnableSystemdService = async () => {
+    let res = await RunCommand('systemctl', ['enable', serviceFileName]);
     if (res.err && res.err.code != 0) {
         throw res.err;
     }

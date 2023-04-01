@@ -4,8 +4,8 @@ const path = require("path");
 const { DownloadAgent, GunzipFile, CreateConfigFile, CreateDir, PromptUserForAgentConfig, MakeFileExecutable, ChangeDirOwnerRecursive, DeleteFile, DeleteFolderRecursive } = require('../shared/utils')
 const { InstallAsSystemdService, StartSystemdService, StopSystemdService, UninstallSystemdService } = require('../shared/linux-utils');
 const { ApplicationUsageError } = require('../shared/errors');
-const fs = require("fs");
 const fse = require("fs-extra");
+const os = require('os');
 const { program, Option } = require('commander');
 program.version('0.0.1');
 
@@ -41,6 +41,15 @@ let Download = async (moveToAgentInstallLocation) => {
 
 (async () => {
   try {
+    const userName = os.userInfo().username;
+    if (userName != 'root') {
+      let args = [];
+      for (let i = 2; i < process.argv.length; ++i)
+        args[i-2] = process.argv[i];
+      console.log(`Installer must be run as sudo, e.g.:\n\nsudo ./sg-agent-installer-linux ${args.join(' ')}\n`);
+      process.exit(1);  
+    }
+
     program
     .addOption(new Option('-c, --command <command>', 'command to run').default('install', 'install the agent as a service').choices(['install', 'download', 'uninstall', 'start', 'stop']))
     .option('-i, --id <id>', 'agent access key id')

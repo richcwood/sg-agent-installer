@@ -41,11 +41,9 @@ let Download = async (moveToAgentInstallLocation) => {
     const userName = os.userInfo().username;
     if (userName != 'root') {
       let args = [];
-      args[0] = `./${path.basename(process.argv[0])}`;
-      args[1] = path.basename(process.argv[1]);
       for (let i = 2; i < process.argv.length; ++i)
-        args[i] = process.argv[i];
-      console.log(`Installer must be run as sudo, e.g. "sudo ${args.join(' ')}"`);
+        args[i-2] = process.argv[i];
+      console.log(`Installer must be run as sudo, e.g.:\n\nsudo ./sg-agent-installer-mac ${args.join(' ')}\n`);
       process.exit(1);  
     }
 
