@@ -3,12 +3,13 @@
 set -e
 
 BUILD_SCRIPT_PATH=$1
+BUILD_SCRIPT_NAME=$2
 
 cd $BUILD_SCRIPT_PATH
 
 # e.g. Release, Debug
-BUILD=$2
+BUILD=$3
 
-node ./BuildInstaller.js $BUILD
+node $BUILD_SCRIPT_NAME $BUILD
 
 gzip ./build/$BUILD/*

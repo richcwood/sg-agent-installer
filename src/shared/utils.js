@@ -278,7 +278,9 @@ let GetAgentConfig = async (cfgFileName) => {
   cfg['tags'] = {};
 
   if (fs.existsSync(cfgFileName)) {
-    cfg = JSON.parse(fs.readFileSync(cfgFileName).toString());
+    try {
+      cfg = JSON.parse(fs.readFileSync(cfgFileName).toString());
+    } catch{}
   }
 
   return cfg;
