@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Contains projects for downloading and installing the SaaSGlue agent for mac and linux",
   "engines": {
-    "node": "10.18.0"
+    "node": "18.0.0"
   },
   "main": "index.js",
   "dependencies": {
@@ -16,7 +16,7 @@
     "unzipper": "^0.10.11"
   },
   "devDependencies": {
-    "pkg": "5.8.0"
+    "pkg": "5.8.1"
   },
   "scripts": {
     "build": "tsc"
